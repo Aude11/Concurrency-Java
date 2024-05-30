@@ -20,15 +20,79 @@ import static java.lang.System.currentTimeMillis;
 public class App {
     public static void main(String[] args) throws InterruptedException {
 
-
+        getPart1();
+        getPart2();
         getPerformancePart3();
+        getMultiThreadPart4();
+        getMultiThreadPart4Atomic();
 
+    }
 
-        ExecutorService pool = Executors.newFixedThreadPool(4);
+    public static void getPart1() throws InterruptedException {
+        Runnable runnableTask = () -> {
+            String page = getWebpage("https://www.google.com");
+            System.out.println(page);
+            System.out.println(Thread.currentThread().getName());
+        };
+        System.out.println("Thread has been started");
+        Thread myThread = new Thread(runnableTask);
+        myThread.start();
+        myThread.join();
+        System.out.println("Thread has been completed");
+
+    }
+
+    public static void getPart2(){
+        ExecutorService pool = Executors.newFixedThreadPool(5);
+        Runnable runnableTask1 = () -> {
+            String page = getWebpage("https://www.google.com");
+            System.out.println(page);
+            System.out.println(Thread.currentThread().getName());
+        };
+
+        Runnable runnableTask2 = () -> {
+            String page = getWebpage("https://corndeladmin.github.io/SoftwareDeveloperCourseMaterialPages/java/ongoing-training/async/reading.html");
+            System.out.println(page);
+            System.out.println(Thread.currentThread().getName());
+        };
+
+        pool.execute(runnableTask1);
+        pool.execute(runnableTask2);
+        pool.execute(runnableTask1);
+        pool.execute(runnableTask2);
+        pool.execute(runnableTask1);
+        pool.shutdown();
+
+    }
+
+    public static void getMultiThreadPart4() throws InterruptedException {
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+
+        for (int i = 0; i < 10_000; i++) {
+            //CounterWithIssue counterA = new CounterWithIssue();
+            SynchCounter counterA = new SynchCounter();
+
+            CompletableFuture<Void> increment1 = CompletableFuture.runAsync(counterA::increment, pool);
+            CompletableFuture<Void> increment2 = CompletableFuture.runAsync(counterA::increment, pool);
+
+            CompletableFuture<Void> all = CompletableFuture.<Integer>allOf(increment1, increment2);
+            all.thenApply((v) -> {
+                if (counterA.get() != 2) {
+                    System.out.println("Incorrect counter value: " + Integer.toString(counterA.get()));
+                }
+
+                return null;
+            });
+        }
+
+        waitForThreadPoolShutdown(pool);
+    }
+
+    public static void getMultiThreadPart4Atomic() throws InterruptedException {
+        ExecutorService pool = Executors.newFixedThreadPool(2);
 
         for (int i = 0; i < 10_000; i++) {
             // CounterWithIssue counterA = new CounterWithIssue();
-            // Counter counterA = new Counter();
             SafeCounterWithoutLock counterA = new SafeCounterWithoutLock();
 
             CompletableFuture<Void> increment1 = CompletableFuture.runAsync(counterA::increment, pool);
@@ -46,6 +110,8 @@ public class App {
 
         waitForThreadPoolShutdown(pool);
     }
+
+
 
     private static void waitForThreadPoolShutdown(ExecutorService pool) throws InterruptedException {
         pool.shutdownNow();
@@ -70,7 +136,7 @@ public class App {
         }
     }
 
-    public static class Counter {
+    public static class SynchCounter {
         private volatile int val = 0;
 
         public synchronized void increment() {
