@@ -3,6 +3,7 @@ package concurrency;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -12,9 +13,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.LongStream;
+
+import static java.lang.System.currentTimeMillis;
 
 public class App {
     public static void main(String[] args) throws InterruptedException {
+
+
+        getPerformancePart3();
+
 
         ExecutorService pool = Executors.newFixedThreadPool(4);
 
@@ -36,10 +44,10 @@ public class App {
             });
         }
 
-        waitForThreadpoolShutdown(pool);
+        waitForThreadPoolShutdown(pool);
     }
 
-    private static void waitForThreadpoolShutdown(ExecutorService pool) throws InterruptedException {
+    private static void waitForThreadPoolShutdown(ExecutorService pool) throws InterruptedException {
         pool.shutdownNow();
         if (!pool.awaitTermination(10, TimeUnit.SECONDS)) {
             System.err.println("Pool did not complete within 10 seconds");
@@ -88,10 +96,6 @@ public class App {
     }
 
 
-
-
-
-
     private static String getWebpage(String url1) {
         URL url = null;
         try {
@@ -128,5 +132,51 @@ public class App {
             throw new RuntimeException(e);
         }
     }
+
+    public static void getPerformancePart3() {
+        long n = 100000L;
+        long startTime = currentTimeMillis();
+        countProbablePrimesNoParallel(n);
+        long endTime = currentTimeMillis();
+        long time = endTime - startTime;
+        System.out.println("No Parallel:" + time);
+
+        long startTime2 = currentTimeMillis();
+        countProbablePrimesParallel(n);
+        long endTime2 = currentTimeMillis();
+        long time2 = endTime2 - startTime2;
+        System.out.println("Parallel:" + time2);
+    }
+
+
+        static long countProbablePrimesParallel(long n) {
+        long count = LongStream.rangeClosed(2, n)
+                .mapToObj(BigInteger::valueOf)
+                .parallel() // request parallel processing
+                .filter((i) -> i.isProbablePrime(50))
+                .count();
+
+        return count;
+    }
+
+    static long countProbablePrimesNoParallel(long n) {
+        long count = LongStream.rangeClosed(2, n)
+                .mapToObj(BigInteger::valueOf)
+                .filter((i) -> i.isProbablePrime(50))
+                .count();
+
+        return count;
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 }
